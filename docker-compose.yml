@@ -20,6 +20,8 @@ x-n8n: &service-n8n
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
     - OLLAMA_HOST=ollama:11434
+    - NODE_FUNCTION_ALLOW_EXTERNAL=*
+    - WEBHOOK_URL=https://stunning-illegally-grackle.ngrok-free.app
 
 x-ollama: &service-ollama
   image: ollama/ollama:latest
@@ -43,6 +45,7 @@ x-init-ollama: &init-ollama
   command:
     - "-c"
     - "sleep 3; ollama pull llama3.2"
+    - "sleep 3; ollama pull nomic-embed-text"
 
 services:
   postgres:
@@ -50,6 +53,8 @@ services:
     hostname: postgres
     networks: ['demo']
     restart: unless-stopped
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -75,7 +80,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
+  ngrok:
+    image: ngrok/ngrok:latest
+    command:
+      - "http"
+      - "http://host.docker.internal:5678"
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    ports:
+      - 4040:4040
   n8n:
     <<: *service-n8n
     hostname: n8n
